@@ -13,9 +13,8 @@ import reproject
 import reproject.mosaicking
 from matplotlib import pyplot as plt
 
-# plt.style.use('seaborn-v0_8')
-
-band = 'r'
+stack = 'image'
+bands = ['r', 'g', 'i', 'z']
 bricks = ['2079p145', '2082p145']
 base_dir = 'fits'
 ra, dec = 208.1111458, 14.4908694
@@ -51,14 +50,14 @@ def crop(hdu, center, scale):
 
 def plot(hdu, filename=None):
     image, header = hdu.data, hdu.header
-    wcs = astropy.wcs.WCS(header)
+    wcs = astropy.wcs.WCS(header, naxis=2)
     plt.figure(figsize=(10, 5))
     plt.subplot(projection=wcs)
-    plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 1), vmax=np.nanpercentile(
+    plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 10), vmax=np.nanpercentile(
         image.flatten(), 99),  origin='lower', interpolation='none')
     plt.xlabel('R.A [deg]')
     plt.ylabel('Dec [deg]')
-    plt.grid(color='white', ls='solid')
+    # plt.grid(color='white', ls='solid')
     if filename:
         plt.savefig(filename, dpi=300)
     else:
@@ -66,15 +65,21 @@ def plot(hdu, filename=None):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 3:
-        band = sys.argv[1]
-        bricks = sys.argv[2].split(',')
-        if len(sys.argv) == 4:
-            filename = sys.argv[3]
-    filenames = [os.path.join(
-        base_dir, brick, f'legacysurvey-{brick}-image-{band}.fits.fz') for brick in bricks]
-    hdu = crop(merge(filenames), (ra, dec), 25)
-    # hdu = crop(merge(filenames), astropy.coordinates.SkyCoord(ra, dec, unit='deg'), (200, 200))
-    plot(hdu, f'{filename}.png')
-    if filename:
-        hdu.writeto(f'{filename}.fits.fz', overwrite=True)
+    # plt.style.use('seaborn-v0_8')
+
+    if len(sys.argv) >= 2:
+        stack = sys.argv[1]
+        if len(sys.argv) >= 3:
+            bricks = sys.argv[2].split(',')
+            if len(sys.argv) == 4:
+                filename = sys.argv[3]
+    for band in bands:
+        filenames = [os.path.join(
+            base_dir, brick, f'legacysurvey-{brick}-{stack}-{band}.fits.fz') for brick in bricks]
+        hdu = crop(merge(filenames), (ra, dec), 25)
+        # hdu = crop(merge(filenames), astropy.coordinates.SkyCoord(ra, dec, unit='deg'), (200, 200))
+        plot(hdu, os.path.join(
+            base_dir, f'{filename}-{band}.png') if filename else None)
+        if filename:
+            hdu.writeto(os.path.join(
+                base_dir, f'{filename}-{band}.fits.fz'), overwrite=True)
