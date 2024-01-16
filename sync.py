@@ -3,11 +3,13 @@
 
 import hashlib
 import multiprocessing as mp
-import urllib.parse
 import os
 import sys
 
 import requests
+
+# import urllib.parse
+
 
 base = 'https://portal.nersc.gov/cfs/cosmo/data/legacysurvey/dr10/south/coadd/208/2082p145/'
 index = 'legacysurvey_dr10_south_coadd_208_2082p145.sha256sum'
