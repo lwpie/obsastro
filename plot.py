@@ -1,48 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from matplotlib import pyplot as plt
 import os
 import sys
 
-import utils
-import astropy.visualization
 import astropy.io.fits
+import astropy.stats
+import astropy.visualization
 import numpy as np
+import photutils.background
+from matplotlib import pyplot as plt
+
+import utils
 
 bands = ['g', 'r', 'i', 'z']
 brick = 'merged'
 base_dir = 'fits'
 mapping = True
-
-
-def denoise(image):
-    return image
-    vmin, vmax = np.nanpercentile(image.flatten(), (1, 99))
-    image = np.clip(image, vmin, vmax)
-    return image
-
-
-def plot(hdu, filename=None):
-    return utils.plot(hdu, filename=filename)
-
-
-def color(hdus, mapping=True, bands=None, filename=None):
-    if (not mapping) and (not bands):
-        raise ValueError('bands must be specified when mapping is False')
-    if not bands:
-        bands = list(hdus.keys())
-    datas = [denoise(hdus[band].data) for band in bands]
-    if mapping:
-        image = dr_rgb(datas, bands)
-    else:
-        image = astropy.visualization.make_lupton_rgb(
-            *datas, stretch=0.5, Q=10)
-    # flatten = image.sum(axis=2)
-    # vmin = np.percentile(flatten, 10)
-    # index = flatten < vmin
-    # image[index] = (0, 0, 0)
-    return utils.plot(astropy.io.fits.PrimaryHDU(image, next(iter(hdus.values())).header), filename=filename)
 
 
 def dr_rgb(imgs, bands):
@@ -80,17 +54,82 @@ def dr_rgb(imgs, bands):
     return rgb
 
 
+def plot(hdu, filename=None):
+    utils.plot(hdu, filename=filename)
+
+
+def hist(hdu, filename=None):
+    image, header = hdu.data, hdu.header
+    plt.hist(image.flatten(), bins=100, range=(-0.05, 0.05))
+    utils.finalize(filename)
+
+
+def color(hdus, bound=None, mapping=True, bands=None, filename=None):
+    if (not mapping) and (not bands):
+        raise ValueError('bands must be specified when mapping is False')
+    if not bands:
+        bands = list(hdus.keys())
+    datas = [hdus[band].data for band in bands]
+
+    if mapping:
+        image = dr_rgb(datas, bands)
+    else:
+        image = astropy.visualization.make_lupton_rgb(
+            *datas, stretch=0.5, Q=10)
+
+    utils.plot(astropy.io.fits.PrimaryHDU(image, next(
+        iter(hdus.values())).header), finish=not bound, filename=filename)
+
+    if bound:
+        data = np.mean(datas, axis=0)
+        upper = np.nanpercentile(data.flatten(), bound * 100)
+        data[data > upper] = np.nan
+        scale = np.arcsinh(data)
+
+        vmin, vmax = astropy.visualization.ZScaleInterval(
+            contrast=bound).get_limits(data)
+        plt.imshow(scale, vmin=vmin, vmax=vmax, cmap='gray', interpolation='none',
+                   origin='lower', clim=[np.min(data), upper], alpha=0.9)
+
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
+    plt.close()
+
+
+def background(hdu, filename=None):
+    image, header = hdu.data, hdu.header
+    wcs = astropy.wcs.WCS(header)
+    utils.axis(wcs)
+
+    clipped = astropy.stats.SigmaClip(
+        sigma=3, sigma_lower=3.0, sigma_upper=2.0, maxiters=10, cenfunc='median', stdfunc='std')
+    background = photutils.background.Background2D(image, (400, 400), filter_size=(3, 3), sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
+        sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS())
+    image = background.background
+
+    plt.imshow(image, origin='lower', interpolation='none', vmin=np.nanpercentile(
+        image.flatten(), 1), vmax=np.nanpercentile(image.flatten(), 99))
+    background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
+
+    utils.finalize(filename)
+
+
 if __name__ == '__main__':
     # plt.style.use('seaborn-v0_8')
 
     if len(sys.argv) > 1:
         brick = sys.argv[1]
         if len(sys.argv) > 2:
-            filename = sys.argv[2]
-        if len(sys.argv) > 3:
-            bands = sys.argv[3].split(',')
+            bands = sys.argv[2].split(',')
             mapping = False
 
     hdus = {band: astropy.io.fits.open(os.path.join(
         base_dir, f'{brick}-{band}.fits.fz'))[0] for band in bands}
-    color(hdus, mapping, bands, filename)
+
+    hist(next(iter(hdus.values())), f'{brick}-hist.png')
+    plot(next(iter(hdus.values())), f'{brick}-plot.png')
+
+    color(hdus, 0.8, mapping, bands, f'{brick}-color.png')
+    background(next(iter(hdus.values())), f'{brick}-background.png')

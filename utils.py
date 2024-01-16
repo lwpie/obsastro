@@ -21,6 +21,22 @@ ra, dec = 208.1111458, 14.4908694
 filename = None
 
 
+def axis(wcs):
+    plt.figure(figsize=(10, 5))
+    plt.subplot(projection=wcs)
+    plt.xlabel('R.A [deg]')
+    plt.ylabel('Dec [deg]')
+    # plt.grid(color='white', ls='solid')
+
+
+def finalize(filename=None):
+    if filename:
+        plt.savefig(filename, dpi=300)
+    else:
+        plt.show()
+    plt.close()
+
+
 def merge(filenames):
     data = [astropy.io.fits.open(filename)[1] for filename in filenames]
     if len(data) == 1:
@@ -48,20 +64,16 @@ def crop(hdu, center, scale):
 #     return astropy.io.fits.PrimaryHDU(cropped.data, header=cropped.wcs.to_header())
 
 
-def plot(hdu, filename=None):
+def plot(hdu, finish=True, filename=None):
     image, header = hdu.data, hdu.header
     wcs = astropy.wcs.WCS(header, naxis=2)
-    plt.figure(figsize=(10, 5))
-    plt.subplot(projection=wcs)
+
+    axis(wcs)
     plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 10), vmax=np.nanpercentile(
         image.flatten(), 99),  origin='lower', interpolation='none')
-    plt.xlabel('R.A [deg]')
-    plt.ylabel('Dec [deg]')
-    # plt.grid(color='white', ls='solid')
-    if filename:
-        plt.savefig(filename, dpi=300)
-    else:
-        plt.show()
+
+    if finish:
+        finalize(filename)
 
 
 if __name__ == '__main__':
@@ -76,9 +88,9 @@ if __name__ == '__main__':
     for band in bands:
         filenames = [os.path.join(
             base_dir, brick, f'legacysurvey-{brick}-{stack}-{band}.fits.fz') for brick in bricks]
-        hdu = crop(merge(filenames), (ra, dec), 25)
+        hdu = crop(merge(filenames), (ra, dec), 10)
         # hdu = crop(merge(filenames), astropy.coordinates.SkyCoord(ra, dec, unit='deg'), (200, 200))
-        plot(hdu, os.path.join(
+        plot(hdu, filename=os.path.join(
             base_dir, f'{filename}-{band}.png') if filename else None)
         if filename:
             hdu.writeto(os.path.join(
