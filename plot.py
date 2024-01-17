@@ -14,8 +14,9 @@ from matplotlib import pyplot as plt
 import utils
 
 bands = ['g', 'r', 'i', 'z']
-brick = 'merged'
+brick = 'image'
 base_dir = 'fits'
+figure_dir = 'figures'
 mapping = True
 
 
@@ -91,11 +92,7 @@ def color(hdus, bound=None, mapping=True, bands=None, filename=None):
         plt.imshow(scale, vmin=vmin, vmax=vmax, cmap='gray', interpolation='none',
                    origin='lower', clim=[np.min(data), upper], alpha=0.9)
 
-    if filename:
-        plt.savefig(filename)
-    else:
-        plt.show()
-    plt.close()
+        utils.finalize(filename)
 
 
 def background(hdu, filename=None):
@@ -128,8 +125,17 @@ if __name__ == '__main__':
     hdus = {band: astropy.io.fits.open(os.path.join(
         base_dir, f'{brick}-{band}.fits.fz'))[0] for band in bands}
 
-    hist(next(iter(hdus.values())), f'{brick}-hist.png')
-    plot(next(iter(hdus.values())), f'{brick}-plot.png')
+    path = os.path.join(base_dir, figure_dir)
 
-    color(hdus, 0.8, mapping, bands, f'{brick}-color.png')
-    background(next(iter(hdus.values())), f'{brick}-background.png')
+    hist(next(iter(hdus.values())), os.path.join(
+        path, f'{brick}-hist.png'))
+    plot(next(iter(hdus.values())), os.path.join(
+        path, f'{brick}-plot.png'))
+
+    color(hdus, mapping=mapping, bands=bands,
+          filename=os.path.join(path, f'{brick}-color.png'))
+    color(hdus, 0.8, mapping, bands, os.path.join(
+        path, f'{brick}-bound.png'))
+
+    background(next(iter(hdus.values())), os.path.join(
+        path, f'{brick}-background.png'))

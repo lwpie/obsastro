@@ -13,12 +13,11 @@ import reproject
 import reproject.mosaicking
 from matplotlib import pyplot as plt
 
-stack = 'image'
+channel = 'image'
 bands = ['r', 'g', 'i', 'z']
 bricks = ['2079p145', '2082p145']
 base_dir = 'fits'
 ra, dec = 208.1111458, 14.4908694
-filename = None
 
 
 def axis(wcs):
@@ -30,10 +29,15 @@ def axis(wcs):
 
 
 def finalize(filename=None):
+    path = os.path.dirname(filename)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     if filename:
         plt.savefig(filename, dpi=300)
     else:
         plt.show()
+
     plt.close()
 
 
@@ -49,19 +53,21 @@ def merge(filenames):
 
 def crop(hdu, center, scale):
     image, header = hdu.data, hdu.header
-    ra, dec = center
     wcs = astropy.wcs.WCS(header)
+
     wcs.wcs.crval = center
     wcs.wcs.pc = [[1 / scale, 0], [0, 1 / scale]]
     image, footprint = reproject.reproject_interp(
         hdu, wcs)
+
     return astropy.io.fits.PrimaryHDU(image, header=wcs.to_header())
 
-# def crop(hdu, center, scale):
-#     image, header = hdu.data, hdu.header
-#     cropped = astropy.nddata.Cutout2D(
-#         image, center, scale, wcs=astropy.wcs.WCS(header))
-#     return astropy.io.fits.PrimaryHDU(cropped.data, header=cropped.wcs.to_header())
+    # center = astropy.coordinates.SkyCoord(*center, unit='deg')
+    # size = np.array(image.shape) / scale
+    # hdu = astropy.nddata.Cutout2D(
+    #     image, center, size, wcs=wcs)
+
+    # return astropy.io.fits.PrimaryHDU(hdu.data, header=hdu.wcs.to_header())
 
 
 def plot(hdu, finish=True, filename=None):
@@ -80,18 +86,14 @@ if __name__ == '__main__':
     # plt.style.use('seaborn-v0_8')
 
     if len(sys.argv) >= 2:
-        stack = sys.argv[1]
+        channel = sys.argv[1]
         if len(sys.argv) >= 3:
-            bricks = sys.argv[2].split(',')
-            if len(sys.argv) == 4:
-                filename = sys.argv[3]
+            bricks = sys.argv[3].split(',')
     for band in bands:
         filenames = [os.path.join(
-            base_dir, brick, f'legacysurvey-{brick}-{stack}-{band}.fits.fz') for brick in bricks]
+            base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
         hdu = crop(merge(filenames), (ra, dec), 10)
-        # hdu = crop(merge(filenames), astropy.coordinates.SkyCoord(ra, dec, unit='deg'), (200, 200))
         plot(hdu, filename=os.path.join(
-            base_dir, f'{filename}-{band}.png') if filename else None)
-        if filename:
-            hdu.writeto(os.path.join(
-                base_dir, f'{filename}-{band}.fits.fz'), overwrite=True)
+            base_dir, f'{channel}-{band}.png'))
+        hdu.writeto(os.path.join(
+            base_dir, f'{channel}-{band}.fits.fz'), overwrite=True)
