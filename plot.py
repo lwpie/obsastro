@@ -101,8 +101,8 @@ def background(hdu, filename=None):
     utils.axis(wcs)
 
     clipped = astropy.stats.SigmaClip(
-        sigma=3, sigma_lower=3.0, sigma_upper=2.0, maxiters=10, cenfunc='median', stdfunc='std')
-    background = photutils.background.Background2D(image, (400, 400), filter_size=(3, 3), sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
+        sigma_lower=3.0, sigma_upper=2.0, maxiters=10)
+    background = photutils.background.Background2D(image, (400, 400), sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
         sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS())
     image = background.background
 
