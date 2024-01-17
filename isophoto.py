@@ -21,7 +21,7 @@ wcs = astropy.wcs.WCS(header)
 # data = ma.masked_equal(data, np.zeros(shape=data.shape))
 
 # g = EllipseGeometry(590, 970, 100, 0.3, 120 / 180 * np.pi)
-g = EllipseGeometry(*wcs.wcs.crpix, 100, 0.3, 90 / 180 * np.pi)
+g = EllipseGeometry(*wcs.wcs.crpix, 400, 0.3, 90 / 180 * np.pi)
 g.find_center(data)
 ellipse = Ellipse(data, geometry=g)
 

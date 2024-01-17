@@ -44,7 +44,7 @@ def background(image):
     except:
         pass
     background = photutils.background.Background2D(image, (400, 400), mask=mask, sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
-        sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS()).background
+        sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS())
 
     return background
 
@@ -100,10 +100,13 @@ if __name__ == '__main__':
     wcs = astropy.wcs.WCS(header)
 
     background = background(image)
-    utils.plot((background, wcs), filename=os.path.join(
-        base_dir, figure_dir, f'{brick}background-{band}.png'))
+    utils.plot((background.background, wcs), filename=os.path.join(
+        base_dir, figure_dir), finish=False)
+    background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
+    utils.finalize(os.path.join(base_dir, figure_dir,
+                                f'{brick}background-{band}.png'))
 
-    mag, psf, ap3 = aperture(image - background, invvar, table, wcs)
+    mag, psf, ap3 = aperture(image - background.background, invvar, table, wcs)
     plt.scatter(mag, psf, marker='o', facecolor='none',
                 edgecolor='orangered', s=10, label='PSF')
     plt.scatter(mag, ap3, marker='+', color='skyblue', s=20, label='Aper')
