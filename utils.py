@@ -7,10 +7,10 @@ import sys
 import astropy.coordinates
 import astropy.io.fits
 import astropy.nddata
+import astropy.table
 import astropy.wcs
 import numpy as np
 import reproject
-import astropy.table
 import reproject.mosaicking
 from matplotlib import pyplot as plt
 
@@ -20,7 +20,7 @@ bricks = ['2079p145', '2082p145']
 base_dir = 'fits'
 ra, dec = 208.1111458, 14.4908694
 
-scale = 1
+scale = 10
 
 columns = ['ra', 'dec', 'type', 'flux_r', 'apflux_r']
 
@@ -35,10 +35,10 @@ def axis(wcs):
 
 def finalize(filename=None):
     path = os.path.dirname(filename)
-    if not os.path.exists(path):
-        os.makedirs(path)
 
     if filename:
+        if not os.path.exists(path):
+            os.makedirs(path)
         plt.savefig(filename, dpi=300)
     else:
         plt.show()
@@ -46,19 +46,34 @@ def finalize(filename=None):
     plt.close()
 
 
-def merge(filenames, dtype='coadd'):
+def merge(filenames, filename=None, dtype='coadd'):
     if dtype == 'coadd':
         data = [astropy.io.fits.open(filename)[1] for filename in filenames]
+
         if len(data) == 1:
             return data[0]
+
         wcs, shape = reproject.mosaicking.find_optimal_celestial_wcs(data)
         array, footprint = reproject.mosaicking.reproject_and_coadd(
             data, wcs, shape_out=shape, reproject_function=reproject.reproject_interp)
-        return astropy.io.fits.PrimaryHDU(array, header=wcs.to_header())
+
+        hdu = astropy.io.fits.PrimaryHDU(array, header=wcs.to_header())
+        if filename:
+            hdu.writeto(filename, overwrite=True)
+
+        return hdu
     else:
         tables = [astropy.table.Table.read(
             filename)[columns] for filename in filenames]
-        return astropy.table.vstack(tables)
+
+        if len(tables) == 1:
+            return tables[0]
+
+        table = astropy.table.vstack(tables)
+        if filename:
+            table.write(filename, overwrite=True)
+
+        return table
 
 
 def crop(data, center, scale, dtype='coadd'):
@@ -90,8 +105,11 @@ def crop(data, center, scale, dtype='coadd'):
 
 
 def plot(hdu, finish=True, filename=None):
-    image, header = hdu.data, hdu.header
-    wcs = astropy.wcs.WCS(header, naxis=2)
+    if type(hdu) == astropy.io.fits.hdu.image.PrimaryHDU:
+        image, header = hdu.data, hdu.header
+        wcs = astropy.wcs.WCS(header, naxis=2)
+    else:
+        image, wcs = hdu
 
     axis(wcs)
     plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 10), vmax=np.nanpercentile(
@@ -111,14 +129,15 @@ if __name__ == '__main__':
     for band in bands:
         filenames = [os.path.join(
             base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
-        hdu = crop(merge(filenames), (ra, dec), scale)
-        plot(hdu, filename=os.path.join(
-            base_dir, f'{channel}-{band}.png'))
+        hdu = crop(
+            merge(filenames, os.path.join(base_dir, f'{channel}-{band}.fits.fz')), (ra, dec), scale)
+        # plot(hdu, filename=os.path.join(
+        #     base_dir, f'{channel}-{band}.png'))
         hdu.writeto(os.path.join(
-            base_dir, f'{channel}-{band}.fits.fz'), overwrite=True)
+            base_dir, f'{scale}-{channel}-{band}.fits.fz'), overwrite=True)
 
     filenames = [os.path.join(base_dir, brick, f'tractor.fits')
                  for brick in bricks]
-    data = crop(merge(filenames, dtype='tractor'),
+    data = crop(merge(filenames, os.path.join(base_dir, 'tractor.fits'), dtype='tractor'),
                 astropy.wcs.WCS(hdu.header), scale, dtype='tractor')
-    data.write(os.path.join(base_dir, f'tractor.fits'), overwrite=True)
+    data.write(os.path.join(base_dir, f'{scale}-tractor.fits'), overwrite=True)
