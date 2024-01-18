@@ -1,0 +1,8 @@
+astropy==6.0.0
+matplotlib==3.8.2
+numpy==1.26.3
+photutils==1.10.0
+reproject==0.13.0
+Requests==2.31.0
+scipy==1.11.4
+tqdm==4.66.1

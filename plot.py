@@ -133,9 +133,9 @@ if __name__ == '__main__':
         path, f'{brick}-plot.png'))
 
     color(hdus, mapping=mapping, bands=bands,
-          filename=os.path.join(path, f'{brick}-color.png'))
+          filename=os.path.join(path, f'{brick}-{"".join(bands)}-color.png'))
     color(hdus, 0.8, mapping, bands, os.path.join(
-        path, f'{brick}-bound.png'))
+        path, f'{brick}-{"".join(bands)}-bound.png'))
 
     # background(next(iter(hdus.values())), os.path.join(
     #     path, f'{brick}-background.png'))
