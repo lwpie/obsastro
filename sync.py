@@ -32,7 +32,7 @@ def join(*iters):
 
 def download(url, checksum, base_dir='.', fix=''):
     if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
+        os.makedirs(base_dir, exist_ok=True)
 
     filename = os.path.basename(url).replace(fix, '')
     path = os.path.join(base_dir, filename)

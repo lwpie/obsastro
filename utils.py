@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import itertools
+import multiprocessing as mp
 import os
 import sys
 
@@ -130,6 +132,18 @@ def plot(hdu, finish=True, filename=None, **kwargs):
         finalize(filename)
 
 
+def main(channel, band):
+    filenames = [os.path.join(
+        base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
+    hdu = crop(
+        merge(filenames, os.path.join(base_dir, f'{channel}-{band}.fits.fz')), (ra, dec), scale)
+    plot(hdu, filename=os.path.join(
+        base_dir, f'{scale}-{channel}-{band}.png'))
+    hdu.writeto(os.path.join(
+        base_dir, f'{scale}-{channel}-{band}.fits.fz'), overwrite=True)
+    return astropy.wcs.WCS(hdu.header)
+
+
 if __name__ == '__main__':
     # plt.style.use('seaborn-v0_8')
 
@@ -137,19 +151,12 @@ if __name__ == '__main__':
         channels = sys.argv[1].split(',')
         if len(sys.argv) >= 3:
             bricks = sys.argv[2].split(',')
-    for channel in tqdm(channels):
-        for band in tqdm(bands):
-            filenames = [os.path.join(
-                base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
-            hdu = crop(
-                merge(filenames, os.path.join(base_dir, f'{channel}-{band}.fits.fz')), (ra, dec), scale)
-            plot(hdu, filename=os.path.join(
-                base_dir, f'{scale}-{channel}-{band}.png'))
-            hdu.writeto(os.path.join(
-                base_dir, f'{scale}-{channel}-{band}.fits.fz'), overwrite=True)
+
+    with mp.Pool(8) as pool:
+        wcs = pool.starmap(main, itertools.product(channels, bands))
 
     filenames = [os.path.join(base_dir, brick, f'tractor.fits')
                  for brick in bricks]
-    data = crop(merge(filenames, os.path.join(base_dir, 'tractor.fits'), dtype='tractor'),
-                astropy.wcs.WCS(hdu.header), scale, dtype='tractor')
+    data = crop(merge(filenames, os.path.join(base_dir, 'tractor.fits'),
+                dtype='tractor'), wcs[0], scale, dtype='tractor')
     data.write(os.path.join(base_dir, f'{scale}-tractor.fits'), overwrite=True)
