@@ -30,6 +30,12 @@ def magnitude(data):
     return -2.5 * np.log10(data) + 22.5
 
 
+def to_pix(ra, dec, wcs):
+    coord = astropy.coordinates.SkyCoord(ra, dec, unit='deg')
+    x, y = wcs.world_to_pixel(coord)
+    return x.astype(int), y.astype(int)
+
+
 def axis(wcs):
     plt.figure(figsize=(10, 5))
     plt.subplot(projection=wcs)

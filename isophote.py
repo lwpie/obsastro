@@ -9,12 +9,13 @@ import astropy.io.fits
 import astropy.wcs
 import numpy as np
 import photutils.isophote
+import scipy.ndimage
 from matplotlib import pyplot as plt
 
 import utils
 
-masx = astropy.coordinates.SkyCoord(208.1111458, 14.4908694, unit='deg')
-ic = astropy.coordinates.SkyCoord(208.1068042, 14.4886816, unit='deg')
+masx = 208.1111458, 14.4908694
+ic = 208.1068042, 14.4886816
 band = 'r'
 
 base_dir = 'fits'
@@ -54,15 +55,16 @@ if __name__ == '__main__':
 
     hdu = astropy.io.fits.open(
         os.path.join(base_dir, f'{brick}image-{band}.fits.fz'))[0]
-    image, header = hdu.data, hdu.header
+    image, header = np.ma.masked_equal(
+        hdu.data, np.zeros(shape=hdu.data.shape)), hdu.header
     wcs = astropy.wcs.WCS(header)
 
-    model = mask(image, wcs.world_to_pixel(ic), 100, 30, maxsma=300)
+    model = mask(image, utils.to_pix(*ic, wcs), 100, 30, maxsma=300)
     image -= model
     utils.plot((image - model, wcs), filename=os.path.join(
         base_dir, figure_dir, f'{brick}masked-{band}.png'))
 
-    isolist = isophote(image, wcs.world_to_pixel(masx),
+    isolist = isophote(image, utils.to_pix(*masx, wcs),
                        400, 100, maxsma=500, step=0.3)
     utils.plot((image, wcs), finish=False)
     for sma in np.arange(50, isolist.sma.max(), 50):
@@ -86,6 +88,28 @@ if __name__ == '__main__':
     plt.legend(loc='best')
     utils.finalize(os.path.join(
         base_dir, figure_dir, f'{brick}profile-{band}.png'))
+
+    lines = list()
+    for angle in np.arange(0, 360, 30):
+        rotated = scipy.ndimage.rotate(image, angle, reshape=False)
+        y, x = utils.to_pix(*masx, wcs)
+        line = rotated[x, y: y + 1000]
+        lines.append(line := line / line.max())
+        # plt.plot(np.diff(line), label=f'{angle} deg')
+
+    plt.figure(figsize=(10, 5))
+    for line in lines:
+        plt.plot(line, label=f'{angle} deg')
+    plt.legend(loc='upper right')
+    utils.finalize(os.path.join(
+        base_dir, figure_dir, f'{brick}grad-{band}.png'))
+
+    plt.figure(figsize=(10, 5))
+    for line in lines:
+        plt.plot(np.diff(line), label=f'{angle} deg')
+    plt.legend(loc='lower right')
+    utils.finalize(os.path.join(
+        base_dir, figure_dir, f'{brick}gradiff-{band}.png'))
 
     # plt.figure(figsize=(10, 5))
     # plt.figure(1)
