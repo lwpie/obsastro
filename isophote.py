@@ -94,18 +94,18 @@ if __name__ == '__main__':
         rotated = scipy.ndimage.rotate(image, angle, reshape=False)
         y, x = utils.to_pix(*masx, wcs)
         line = rotated[x, y: y + 1000]
-        lines.append(line := line / line.max())
+        lines.append((angle, line := line / line.max()))
         # plt.plot(np.diff(line), label=f'{angle} deg')
 
     plt.figure(figsize=(10, 5))
-    for line in lines:
+    for angle, line in lines:
         plt.plot(line, label=f'{angle} deg')
     plt.legend(loc='upper right')
     utils.finalize(os.path.join(
         base_dir, figure_dir, f'{brick}grad-{band}.png'))
 
     plt.figure(figsize=(10, 5))
-    for line in lines:
+    for angle, line in lines:
         plt.plot(np.diff(line), label=f'{angle} deg')
     plt.legend(loc='lower right')
     utils.finalize(os.path.join(

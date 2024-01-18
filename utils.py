@@ -125,8 +125,8 @@ def plot(hdu, finish=True, filename=None, **kwargs):
         image, wcs = hdu
 
     axis(wcs)
-    plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 10), vmax=np.nanpercentile(
-        image.flatten(), 99),  origin='lower', interpolation='none', **kwargs)
+    plt.imshow(image, vmin=np.nanpercentile(image.ravel(), 10), vmax=np.nanpercentile(
+        image.ravel(), 99),  origin='lower', interpolation='none', **kwargs)
 
     if finish:
         finalize(filename)

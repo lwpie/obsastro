@@ -61,7 +61,7 @@ def plot(hdu, filename=None):
 
 def hist(hdu, filename=None):
     image, header = hdu.data, hdu.header
-    plt.hist(image.flatten(), bins=100, range=(-0.02, 0.02))
+    plt.hist(image.ravel(), bins=100, range=(-0.02, 0.02))
     utils.finalize(filename)
 
 
@@ -83,7 +83,7 @@ def color(hdus, bound=None, mapping=True, bands=None, filename=None):
 
     if bound:
         data = np.mean(datas, axis=0)
-        upper = np.nanpercentile(data.flatten(), bound * 100)
+        upper = np.nanpercentile(data.ravel(), bound * 100)
         data[data > upper] = np.nan
         scale = np.arcsinh(data)
 
@@ -107,7 +107,7 @@ def color(hdus, bound=None, mapping=True, bands=None, filename=None):
 #     image = background.background
 
 #     plt.imshow(image, origin='lower', interpolation='none', vmin=np.nanpercentile(
-#         image.flatten(), 1), vmax=np.nanpercentile(image.flatten(), 99))
+#         image.ravel(), 1), vmax=np.nanpercentile(image.ravel(), 99))
 #     background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
 
 #     utils.finalize(filename)

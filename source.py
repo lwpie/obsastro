@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import collections
 import os
 import sys
 
@@ -69,7 +70,7 @@ def aperture(image, invvar, table, wcs):
 
 def deblend(image, invvar):
     segments = photutils.segmentation.detect_sources(
-        image, 4.8 * np.sqrt(1 / invvar), npixels=10)
+        image, 2 * np.sqrt(1 / invvar), npixels=10)
 
     deblend = photutils.segmentation.deblend_sources(
         image, segments, npixels=20, nlevels=8, contrast=0.05)
@@ -114,6 +115,9 @@ if __name__ == '__main__':
     utils.finalize(os.path.join(base_dir, figure_dir,
                    f'{brick}aperture-{band}.png'))
 
-    segments, deblend = deblend(image, invvar)
+    segments, deblend = deblend(image - background.background, invvar)
+    labels = list(
+        zip(*collections.Counter(deblend.data.ravel()).most_common(3)))[0][: -3: -1]
+    deblend.reassign_label(*labels)
     utils.plot((deblend.data, wcs), filename=os.path.join(
         base_dir, figure_dir, f'{brick}deblend-{band}.png'), cmap=segments.cmap)
