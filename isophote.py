@@ -21,9 +21,9 @@ base_dir = 'fits'
 figure_dir = 'isophote'
 
 
-def mask(image, center, sma, angel, **kwargs):
+def mask(image, center, sma, angle, **kwargs):
     g = photutils.isophote.EllipseGeometry(
-        *center, sma, 0., angel * np.pi / 180)
+        *center, sma, 0., angle * np.pi / 180)
     g.find_center(image)
     ellipse = photutils.isophote.Ellipse(image, geometry=g)
     isolist = ellipse.fit_image(**kwargs)
@@ -32,9 +32,9 @@ def mask(image, center, sma, angel, **kwargs):
     return model
 
 
-def isophote(image, center, sma, angel, **kwargs):
+def isophote(image, center, sma, angle, **kwargs):
     g = photutils.isophote.EllipseGeometry(
-        *center, sma, 0., angel * np.pi / 180)
+        *center, sma, 0., angle * np.pi / 180)
     g.find_center(image)
 
     ellipse = photutils.isophote.Ellipse(image, geometry=g)
