@@ -61,7 +61,7 @@ def plot(hdu, filename=None):
 
 def hist(hdu, filename=None):
     image, header = hdu.data, hdu.header
-    plt.hist(image.flatten(), bins=100, range=(-0.05, 0.05))
+    plt.hist(image.flatten(), bins=100, range=(-0.02, 0.02))
     utils.finalize(filename)
 
 
@@ -95,22 +95,22 @@ def color(hdus, bound=None, mapping=True, bands=None, filename=None):
         utils.finalize(filename)
 
 
-def background(hdu, filename=None):
-    image, header = hdu.data, hdu.header
-    wcs = astropy.wcs.WCS(header)
-    utils.axis(wcs)
+# def background(hdu, filename=None):
+#     image, header = hdu.data, hdu.header
+#     wcs = astropy.wcs.WCS(header)
+#     utils.axis(wcs)
 
-    clipped = astropy.stats.SigmaClip(
-        sigma_lower=3.0, sigma_upper=2.0, maxiters=10)
-    background = photutils.background.Background2D(image, (400, 400), sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
-        sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS())
-    image = background.background
+#     clipped = astropy.stats.SigmaClip(
+#         sigma_lower=3.0, sigma_upper=2.0, maxiters=10)
+#     background = photutils.background.Background2D(image, (400, 400), sigma_clip=clipped, bkg_estimator=photutils.background.SExtractorBackground(
+#         sigma_clip=clipped), bkgrms_estimator=photutils.background.BiweightScaleBackgroundRMS())
+#     image = background.background
 
-    plt.imshow(image, origin='lower', interpolation='none', vmin=np.nanpercentile(
-        image.flatten(), 1), vmax=np.nanpercentile(image.flatten(), 99))
-    background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
+#     plt.imshow(image, origin='lower', interpolation='none', vmin=np.nanpercentile(
+#         image.flatten(), 1), vmax=np.nanpercentile(image.flatten(), 99))
+#     background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
 
-    utils.finalize(filename)
+#     utils.finalize(filename)
 
 
 if __name__ == '__main__':
@@ -137,5 +137,5 @@ if __name__ == '__main__':
     color(hdus, 0.8, mapping, bands, os.path.join(
         path, f'{brick}-bound.png'))
 
-    background(next(iter(hdus.values())), os.path.join(
-        path, f'{brick}-background.png'))
+    # background(next(iter(hdus.values())), os.path.join(
+    #     path, f'{brick}-background.png'))

@@ -13,8 +13,9 @@ import numpy as np
 import reproject
 import reproject.mosaicking
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
-channel = 'image'
+channels = ['image', 'invvar']
 bands = ['r', 'g', 'i', 'z']
 bricks = ['2079p145', '2082p145']
 base_dir = 'fits'
@@ -23,6 +24,10 @@ ra, dec = 208.1111458, 14.4908694
 scale = 10
 
 columns = ['ra', 'dec', 'type', 'flux_r', 'apflux_r']
+
+
+def magnitude(data):
+    return -2.5 * np.log10(data) + 22.5
 
 
 def axis(wcs):
@@ -104,7 +109,7 @@ def crop(data, center, scale, dtype='coadd'):
         return data[mask]
 
 
-def plot(hdu, finish=True, filename=None):
+def plot(hdu, finish=True, filename=None, **kwargs):
     if type(hdu) == astropy.io.fits.hdu.image.PrimaryHDU:
         image, header = hdu.data, hdu.header
         wcs = astropy.wcs.WCS(header, naxis=2)
@@ -113,7 +118,7 @@ def plot(hdu, finish=True, filename=None):
 
     axis(wcs)
     plt.imshow(image, vmin=np.nanpercentile(image.flatten(), 10), vmax=np.nanpercentile(
-        image.flatten(), 99),  origin='lower', interpolation='none')
+        image.flatten(), 99),  origin='lower', interpolation='none', **kwargs)
 
     if finish:
         finalize(filename)
@@ -123,18 +128,19 @@ if __name__ == '__main__':
     # plt.style.use('seaborn-v0_8')
 
     if len(sys.argv) >= 2:
-        channel = sys.argv[1]
+        channels = sys.argv[1].split(',')
         if len(sys.argv) >= 3:
-            bricks = sys.argv[3].split(',')
-    for band in bands:
-        filenames = [os.path.join(
-            base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
-        hdu = crop(
-            merge(filenames, os.path.join(base_dir, f'{channel}-{band}.fits.fz')), (ra, dec), scale)
-        # plot(hdu, filename=os.path.join(
-        #     base_dir, f'{channel}-{band}.png'))
-        hdu.writeto(os.path.join(
-            base_dir, f'{scale}-{channel}-{band}.fits.fz'), overwrite=True)
+            bricks = sys.argv[2].split(',')
+    for channel in tqdm(channels):
+        for band in tqdm(bands):
+            filenames = [os.path.join(
+                base_dir, brick, f'{channel}-{band}.fits.fz') for brick in bricks]
+            hdu = crop(
+                merge(filenames, os.path.join(base_dir, f'{channel}-{band}.fits.fz')), (ra, dec), scale)
+            plot(hdu, filename=os.path.join(
+                base_dir, f'{scale}-{channel}-{band}.png'))
+            hdu.writeto(os.path.join(
+                base_dir, f'{scale}-{channel}-{band}.fits.fz'), overwrite=True)
 
     filenames = [os.path.join(base_dir, brick, f'tractor.fits')
                  for brick in bricks]

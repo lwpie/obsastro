@@ -25,7 +25,7 @@ ra, dec = 208.1111458, 14.4908694
 band = 'r'
 
 base_dir = 'fits'
-figure_dir = 'analyze'
+figure_dir = 'source'
 
 
 def background(image):
@@ -49,16 +49,12 @@ def background(image):
     return background
 
 
-def magnitude(data):
-    return -2.5 * np.log10(data) + 22.5
-
-
 def aperture(image, invvar, table, wcs):
     points = table[(table['type'] == 'PSF') & (
         table['flux_r'] > 0) & (table['apflux_r'][:, 3] > 0)]
 
-    psf = magnitude(points['flux_r'])
-    ap3 = magnitude(points['apflux_r'][:, 3])
+    psf = utils.magnitude(points['flux_r'])
+    ap3 = utils.magnitude(points['apflux_r'][:, 3])
 
     apers = photutils.aperture.SkyCircularAperture(
         astropy.coordinates.SkyCoord(points['ra'], points['dec'], unit='deg'), 1.5 * astropy.units.arcsec)
@@ -66,14 +62,14 @@ def aperture(image, invvar, table, wcs):
     phot = photutils.aperture.aperture_photometry(
         image, apers, wcs=wcs, error=np.sqrt(1.0 / invvar), method='subpixel')
 
-    mag = magnitude(phot['aperture_sum'])
+    mag = utils.magnitude(phot['aperture_sum'])
 
     return mag, psf, ap3
 
 
 def deblend(image, invvar):
     segments = photutils.segmentation.detect_sources(
-        image, 5 * np.sqrt(1 / invvar), npixels=10)
+        image, 4.8 * np.sqrt(1 / invvar), npixels=10)
 
     deblend = photutils.segmentation.deblend_sources(
         image, segments, npixels=20, nlevels=8, contrast=0.05)
@@ -82,6 +78,8 @@ def deblend(image, invvar):
 
 
 if __name__ == '__main__':
+    # plt.style.use('seaborn-v0_8')
+
     if len(sys.argv) >= 2:
         brick = sys.argv[1]
     else:
@@ -100,8 +98,7 @@ if __name__ == '__main__':
     wcs = astropy.wcs.WCS(header)
 
     background = background(image)
-    utils.plot((background.background, wcs), filename=os.path.join(
-        base_dir, figure_dir), finish=False)
+    utils.plot((background.background, wcs), finish=False)
     background.plot_meshes(outlines=True, marker='.', color='cyan', alpha=0.3)
     utils.finalize(os.path.join(base_dir, figure_dir,
                                 f'{brick}background-{band}.png'))
@@ -118,8 +115,5 @@ if __name__ == '__main__':
                    f'{brick}aperture-{band}.png'))
 
     segments, deblend = deblend(image, invvar)
-    utils.axis(wcs)
-    plt.imshow(deblend, origin='lower',
-               interpolation='none', cmap=segments.cmap)
-    utils.finalize(os.path.join(base_dir, figure_dir,
-                                f'{brick}deblend-{band}.png'))
+    utils.plot((deblend.data, wcs), filename=os.path.join(
+        base_dir, figure_dir, f'{brick}deblend-{band}.png'), cmap=segments.cmap)
