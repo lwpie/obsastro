@@ -1,6 +1,6 @@
 ## ObsAstro
 
-Using Jupyter Notebook for a project feels a bit odd; it often resembles more like a playful learning tool, with a relaxed arrangement of code and variables scattering throughout the notebook, which complicates the task of gathering information effectively. Moreover, completing an academic task merely by modifying input filenames and clicking through the steps offers little educational value, serving only to secure three credit points. Therefore, I used the `demo.ipynb` as a reference to extensively refactor the code snippets into a typical Python project. which has undoubtedly been a more educational procedure.
+Using Jupyter Notebook for a project feels a bit odd; it often resembles more like a playful learning tool, with a relaxed arrangement of code and variables scattering throughout the notebook, which complicates the task of gathering information effectively. Moreover, completing an academic task merely by modifying input filenames and clicking through the steps offers little educational value, serving only to secure three credit points. Therefore, I used the `demo.ipynb` as a reference to extensively refactor the code snippets into a typical Python project. which has undoubtedly been a more worthwhile procedure.
 
 ### TL; DR
 
@@ -73,14 +73,6 @@ This module includes utilities to synchronize files from the legacy survey by do
 - Retrieving a list of image data.  (`sync`)
 - Downloading the file and verifying its checksum.  (`download`)
 
-#### `- plot.py`
-
-This module generates basic images for understanding and estimation of images.
-
-- Plotting the image and its corresponding data histogram.  (`plot`,  `hist`)
-- Generating RGB image by stacking data from multi-wavelength image sources.  (`color`)
-- Mapping g, r, i, z bands into r, g, b color space using mapping function that mimics Legacy Survey Viewer.  (`color`,  `dr_rgb`)
-
 #### `- utils.py`
 
 This module comprises utilities that serve various common purposes and help with the processing of data files.
@@ -96,7 +88,19 @@ This module comprises utilities that serve various common purposes and help with
 
 > **Q**: See if you can save the cutout image as a new `FITS` file.
 >
-> **A**: Implemented methods (`merge`, `crop`) that not only save but also merge and crop, covering image data as well as `tractor` tables.
+> **A**: Implemented methods that not only save but also merge and crop, covering image data as well as `tractor` tables. (`merge`, `crop`)
+
+#### `- plot.py`
+
+This module generates basic images for understanding and estimation of images.
+
+- Plotting the image and its corresponding data histogram.  (`plot`,  `hist`)
+- Generating RGB image by stacking data from multi-wavelength image sources.  (`color`)
+- Mapping g, r, i, z bands into r, g, b color space using mapping function that mimics Legacy Survey viewer.  (`color`,  `dr_rgb`)
+
+> **Q**: (Moreover) Why does an RGB image appear distinct when compared to the legacy survey viewer?
+>
+> **A**: Mapping a multi-spectral image to RGB involves different color spaces. Invisible bands, such as the z and i bands, cannot be directly mapped to RGB, and require a custom mapping function to be designed. (`dr_rgb`)
 
 #### `- source.py`
 
@@ -109,7 +113,7 @@ The module presents fundamental techniques for aperture computation.
 
 > **Q**: Now that we know the background estimation is affected by bright sources, can you think of a way to improve it?
 >
-> **A**: An approach (implemented within `try` blocks) is implemented to mask these sources before estimation. This involves identifying bright sources, creating a mask, and applying it during the background estimation process.
+> **A**: An approach is implemented to mask these sources before estimation. This involves identifying bright sources, creating a mask, and applying it during the background estimation process. (within `try` blocks)
 
 > **Q**: Why do you think some of the point sources have fainter PSF magnitude than the aperture one? Shouldn't the PSF model recover the total flux better than the aperture ones? 
 >
@@ -121,7 +125,7 @@ The module presents fundamental techniques for aperture computation.
 
 #### `- isophote.py`
 
-This component explores advanced methods for aperture calculation.
+This component explores advanced methods for aperture calculation. Specific preprocessing and parameter selection are also customized based on the conditions of the selected galaxies.
 
 - Identifying and masking sources adjacent to the main object.  (`mask`)
 - Computing isophotes through elliptical geometries.  (`isophote`)
@@ -129,8 +133,12 @@ This component explores advanced methods for aperture calculation.
 
 > **Q**: Why the surface brightness profile is "bumpy"? Can you try to fix it? 
 >
-> **A**: Bright sources other than the selected object exists. Mask out these sources before fitting the image.
+> **A**: Bright sources other than the selected object exists. Mask out these sources before fitting the image. (`mask`)
 
 > **Q**: (Moreover) How to fit non-ellipse objects?
 >
 > **A**: Generate variation curves in different directions, determine suitable thresholds and isophotes, and interpolate the shape curves.  (`10-grad-r.png`, `10-gradiff-r.png`)
+>
+> **A**: Galaxies have different shapes. For spiral galaxies, their curves may go through several fluctuations. For the selected galaxies, an appropriate threshold could be chosed to capture the edges. However, tweaking the step value in the ellipse fitting algorithm can also achieve an effective fit.
+
+![10-grad-r.png](figures/10-grad-r.png)
